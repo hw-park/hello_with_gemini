@@ -1,19 +1,31 @@
+# .NET 9.0 SDK 이미지를 빌드 스테이지로 사용합니다.
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
-WORKDIR /app
+WORKDIR /src
 
-COPY *.csproj .
-RUN dotnet restore
+# ARM64 환경에서 Grpc.Tools의 protoc 실행 시 발생하는 세그멘테이션 오류(exit code 139)를 해결하기 위해
+# 시스템 패키지 매니저를 통해 안정적인 protoc 컴파일러를 직접 설치합니다.
+RUN apt-get update && apt-get install -y protobuf-compiler
 
+# Docker 캐시를 효율적으로 사용하기 위해 프로젝트/솔루션/프로토콜 파일을 먼저 복사합니다.
+COPY ["*.sln", "./"]
+COPY ["HelloApp/HelloApp.csproj", "HelloApp/"]
+COPY ["HelloService/HelloService.csproj", "HelloService/"]
+COPY ["Protos/", "Protos/"]
+RUN dotnet restore "HelloApp/HelloApp.csproj"
+
+# 나머지 모든 소스 코드를 복사합니다.
 COPY . .
-RUN dotnet publish -c Release -o out
+WORKDIR "/src/HelloApp"
+RUN dotnet publish "HelloApp.csproj" -c Release -o /app/publish
 
+# 최종 이미지를 위해 더 가벼운 ASP.NET 런타임 이미지를 사용합니다.
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
-COPY --from=build /app/out .
+COPY --from=build /app/publish .
 
 EXPOSE 8080
 EXPOSE 8081
 
-ENV ASPNETCORE_URLS=http://+:8080;https://+:8081
-
+# docker-compose.yml에서 환경 변수로 제어하므로 여기서는 제거하거나 주석 처리합니다.
+# ENV ASPNETCORE_URLS=http://+:8080;https://+:8081
 ENTRYPOINT ["dotnet", "HelloApp.dll"]
