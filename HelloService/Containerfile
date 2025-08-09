@@ -1,26 +1,26 @@
-# .NET 9.0 SDK 이미지를 빌드 스테이지로 사용합니다.
+# Use the .NET 9.0 SDK image for the build stage.
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-# ARM64 환경에서 Grpc.Tools의 protoc 실행 시 발생하는 세그멘테이션 오류(exit code 139)를 해결하기 위해
-# 시스템 패키지 매니저를 통해 안정적인 protoc 컴파일러를 직접 설치합니다.
+# To resolve the segmentation fault (exit code 139) that occurs when running protoc from Grpc.Tools in an ARM64 environment,
+# we install a stable protoc compiler directly via the system package manager.
 RUN apt-get update && apt-get install -y protobuf-compiler
 
-# Docker 캐시를 효율적으로 사용하기 위해 프로젝트 파일(*.csproj), 솔루션 파일(*.sln),
-# 그리고 의존성이 있는 프로토콜 버퍼 파일(*.proto)을 먼저 복사합니다.
-# 이 파일들은 자주 변경되지 않으므로, 이 레이어는 캐시될 가능성이 높습니다.
+# To use the Docker cache efficiently, first copy the project files (*.csproj), solution file (*.sln),
+# and the dependent protocol buffer files (*.proto).
+# Since these files do not change often, this layer is likely to be cached.
 COPY ["*.sln", "./"]
 COPY ["HelloService/HelloService.csproj", "HelloService/"]
 COPY ["HelloApp/HelloApp.csproj", "HelloApp/"]
 COPY ["Protos/", "Protos/"]
 RUN dotnet restore "HelloService/HelloService.csproj"
 
-# 나머지 모든 소스 코드를 복사합니다.
+# Copy the rest of the source code.
 COPY . .
 WORKDIR "/src/HelloService"
 RUN dotnet publish "HelloService.csproj" -c Release -o /app/publish
 
-# 최종 이미지를 위해 더 가벼운 ASP.NET 런타임 이미지를 사용합니다.
+# Use the lighter ASP.NET runtime image for the final image.
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app
 COPY --from=build /app/publish .
