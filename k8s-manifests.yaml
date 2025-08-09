@@ -1,0 +1,91 @@
+# ------------------- Hello Service -------------------
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloservice
+  labels:
+    app: helloservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helloservice
+  template:
+    metadata:
+      labels:
+        app: helloservice
+    spec:
+      containers:
+      - name: helloservice
+        image: helloservice:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_URLS
+          value: http://+:8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: helloservice
+spec:
+  type: LoadBalancer
+  selector:
+    app: helloservice
+  ports:
+  - name: http
+    protocol: TCP
+    port: 5268
+    targetPort: 8080
+
+# ------------------- Hello App -------------------
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helloapp
+  labels:
+    app: helloapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: helloapp
+  template:
+    metadata:
+      labels:
+        app: helloapp
+    spec:
+      containers:
+      - name: helloapp
+        image: helloapp:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        env:
+        - name: ASPNETCORE_URLS
+          value: http://+:8080
+        - name: HelloServiceAddress
+          value: http://helloservice:5268 # Connect to the helloservice Service on its exposed port
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: helloapp
+spec:
+  type: LoadBalancer
+  selector:
+    app: helloapp
+  ports:
+  - name: http
+    protocol: TCP
+    port: 8080
+    targetPort: 8080
