@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+option csharp_namespace = "HelloService";
+
+package hello;
+
+service Hello {
+  rpc GetResponse (HelloRequest) returns (HelloResponse);
+}
+
+message HelloRequest {
+  string request = 1;
+}
+
+message HelloResponse {
+  string response = 1;
+}

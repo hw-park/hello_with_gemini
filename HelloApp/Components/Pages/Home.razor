@@ -1,0 +1,72 @@
+@page "/"
+@rendermode InteractiveServer
+@using HelloService
+@inject Hello.HelloClient HelloClient
+@inject ILogger<Home> Logger
+@inject IJSRuntime JSRuntime
+
+<PageTitle>HelloApp</PageTitle>
+
+<h1>Please enter your name</h1>
+
+<input @bind="name" @onkeydown="HandleKeyDown" @ref="nameInput" placeholder="Enter your name" />
+<button @onclick="SayHello" disabled="@isLoading">Submit</button>
+
+@if (!string.IsNullOrEmpty(response))
+{
+    <p>Response: @response</p>
+}
+
+@code {
+    private string? name;
+    private string? response;
+    private ElementReference nameInput;
+
+    private bool isLoading = false;
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await SayHello();
+        }
+    }
+
+    private async Task SayHello()
+    {
+        Logger.LogInformation("SayHello method called");
+
+        if (isLoading)
+        {
+            Logger.LogInformation("Do nothing as isLoading == true");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(name))
+        {
+            Logger.LogInformation("SayHello method called");
+            return; // Do nothing if the name is empty
+        }
+
+        isLoading = true;
+
+        try
+        {
+            var reply = await HelloClient.GetResponseAsync(new HelloRequest { Request = name });
+            response = reply.Response;
+            Logger.LogInformation("gRPC call successful");
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "gRPC call failed");
+            response = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            name = String.Empty;
+            StateHasChanged(); // Trigger re-render after all updates
+            await nameInput.FocusAsync();
+            isLoading = false;
+        }
+    }
+}

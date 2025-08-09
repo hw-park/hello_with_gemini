@@ -1,0 +1,41 @@
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Aa]ppPackages/
+[Aa]ppPackageUploads/
+
+# Packages
+*.nupkg
+*.snupkg
+*.vsix
+.nuget/
+packages/
+
+# Rider
+.idea/
+*.iml
+
+# Misc
+[Tt]humbs.db
+[Dd]esktop.ini
+
+# Logs
+*.log
+
+# Blazor specific
+wwwroot/dist/
+wwwroot/build/
+
+# Local files
+#appsettings.Development.json
+#appsettings.json
+#launchSettings.json
